@@ -6,34 +6,31 @@
  * Time: 00:42
  */
 
-namespace App\Utilities\TxRecord;
+namespace App\Utilities;
 
-use App\Utilities\Record\Record;
+use Blockchain\Explorer\Address;
 use Blockchain\Explorer\Transaction;
 
 class TxRecord {
 
   protected $hash;
-
-  protected $dateFormat = "Y-m-d\TH:i:s\Z";
-
+  protected $dateFormat = "Y-m-d H:i:s";
   protected $date;
-
   protected $balance = 0;
-
   protected $records = [];
-
   protected $transaction;
+  protected $walletId;
 
   /**
    * TxRecord constructor.
    *
    * @param \Blockchain\Explorer\Transaction $transaction
    */
-  public function __construct(Transaction $transaction) {
+  public function __construct(Transaction $transaction, Address $address) {
     $this->transaction = $transaction;
     $this->date = $this->formatDate($transaction->time);
     $this->hash = $transaction->hash;
+    $this->walletId = $address->address;
   }
 
   /**
@@ -65,7 +62,7 @@ class TxRecord {
   protected function processInputs() {
     foreach ($this->transaction->inputs as $input) {
       $this->balance += $input->value;
-      $this->records[] = new Record($input->value, $input->address, NULL, NULL, NULL, $this->date, $this->hash);
+      $this->records[] = new Record($input->value, $input->address, NULL, NULL, NULL, $this->date, $this->hash, $input->tx_index, $this->walletId);
     }
   }
 
@@ -75,7 +72,7 @@ class TxRecord {
   protected function processOutputs() {
     foreach ($this->transaction->outputs as $output) {
       $this->balance -= $output->value;
-      $this->records[] = new Record(NULL,NULL, $output->value, $output->address,NULL, $this->date, $this->hash);
+      $this->records[] = new Record(NULL,NULL, $output->value, $output->address,NULL, $this->date, $this->hash, $output->tx_index, $this->walletId);
     }
   }
 
@@ -84,7 +81,8 @@ class TxRecord {
    */
   protected function processFee() {
     if ($this->balance > 0) {
-      $this->records[] = new Record(NULL,NULL, $this->balance, NULL,TRUE, $this->date, $this->hash);
+      $balance = number_format($this->balance, 8);
+      $this->records[] = new Record(NULL,NULL, $balance, NULL,TRUE, $this->date, $this->hash, NULL, $this->walletId);
     }
   }
 }

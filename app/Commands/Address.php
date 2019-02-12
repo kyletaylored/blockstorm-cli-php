@@ -2,9 +2,11 @@
 
 namespace App\Commands;
 
-use App\Utilities\TxRecord\TxRecord;
+use App\Utilities\TxRecord;
+use Blockchain\Blockchain;
 use Illuminate\Console\Scheduling\Schedule;
 use LaravelZero\Framework\Commands\Command;
+use SoapBox\Formatter\Formatter;
 
 class Address extends Command
 {
@@ -23,7 +25,9 @@ class Address extends Command
     protected $description = 'Get blockchain address information.';
 
     protected $records = [];
+    protected $balance = 0;
     private $limit = 50;
+    private $delay = 1.5;
 
     /**
      * Execute the console command.
@@ -36,27 +40,41 @@ class Address extends Command
       $Blockchain = new \Blockchain\Blockchain();
       $address = $Blockchain->Explorer->getAddress($id);
 
+      // Set balance;
+      $this->balance = $address->final_balance;
+
+      // Get all transaction history
       if ($this->option('all')) {
-        $this->processTx($address);
+        $this->processAllTx($address, $Blockchain);
       }
 
-      return (json_encode($address));
+      if ($this->option('download')) {
+        $formatter = Formatter::make($this->records, Formatter::ARR);
+        file_put_contents($address->address . "_txs.csv", $formatter->toCsv());
+      }
+
+      var_dump (json_encode($address));
 
     }
 
-    protected function processAllTx (\Blockchain\Explorer\Address $address) {
+    protected function processAllTx (\Blockchain\Explorer\Address $address, Blockchain $Blockchain) {
       // Process all transactions if more available.
-      if (count($address->transactions) < $address->n_tx) {
-        for ($i = $this->limit; $i < $address->n_tx; $i += $this->limit) {
-          $t = '';
-        }
+      for ($i = 0; $i < $address->n_tx; $i += $this->limit) {
+        $address = $Blockchain->Explorer->getAddress($address->address, $this->limit, $i);
+        $this->processTx($address);
+        $this->info("Processing batch: $i of $address->n_tx");
+        sleep($this->delay); // To fix rate limiting.
       }
     }
 
     protected function processTx (\Blockchain\Explorer\Address $address) {
       foreach ($address->transactions as $transaction) {
-        $records = new TxRecord($transaction);
-        array_push($this->records, $records->getRecords());
+        $records = new TxRecord($transaction, $address);
+        foreach ($records->getRecords() as $record) {
+          $this->balance += $record->netBalance();
+          $record->setBalance(number_format($this->balance, 8));
+          array_push($this->records, (array) $record);
+        }
       }
     }
 
