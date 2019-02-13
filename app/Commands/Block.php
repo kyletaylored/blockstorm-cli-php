@@ -2,7 +2,6 @@
 
 namespace App\Commands;
 
-use Illuminate\Console\Scheduling\Schedule;
 use LaravelZero\Framework\Commands\Command;
 
 class Block extends Command
@@ -19,7 +18,7 @@ class Block extends Command
      *
      * @var string
      */
-    protected $description = 'Command description';
+    protected $description = 'Retrieve the latest block info.';
 
     /**
      * Execute the console command.
@@ -28,21 +27,8 @@ class Block extends Command
      */
     public function handle()
     {
-        //
-      $Blockchain = new \Blockchain\Blockchain();
-      $latest = $Blockchain->Explorer->getLatestBlock();
-      $latest = $Blockchain->Explorer->getAddress("1A1ryxZtz4LX7o1GEne9Qz49w3DFgfJaB");
-      return (json_encode($latest));
-    }
-
-    /**
-     * Define the command's schedule.
-     *
-     * @param  \Illuminate\Console\Scheduling\Schedule $schedule
-     * @return void
-     */
-    public function schedule(Schedule $schedule): void
-    {
-        // $schedule->command(static::class)->everyMinute();
+        $Blockchain = new \Blockchain\Blockchain();
+        $latest = $Blockchain->Explorer->getLatestBlock();
+        print $latest;
     }
 }

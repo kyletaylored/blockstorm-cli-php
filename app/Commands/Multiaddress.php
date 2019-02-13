@@ -2,6 +2,7 @@
 
 namespace App\Commands;
 
+use Blockchain\Blockchain;
 use Illuminate\Console\Scheduling\Schedule;
 use LaravelZero\Framework\Commands\Command;
 
@@ -12,23 +13,32 @@ class Multiaddress extends Command
      *
      * @var string
      */
-    protected $signature = 'command:name';
+    protected $signature = 'addr:multi { ids="id1,id2,..." : Comma separated list of blockchaind IDs } { --d|download : }';
 
     /**
      * The description of the command.
      *
      * @var string
      */
-    protected $description = 'Command description';
+    protected $description = 'Get blockchain info from multiple addresses.';
 
-    /**
-     * Execute the console command.
-     *
-     * @return mixed
-     */
+  /**
+   * Execute the console command.
+   *
+   * @return mixed
+   * @throws \Blockchain\Exception\FormatError
+   */
     public function handle()
     {
-        //
+      $addresses = explode(',', $this->argument('ids'));
+      $Blockchain = new Blockchain();
+
+      $info = $Blockchain->Explorer->getMultiAddress($addresses);
+
+      print "";
+
+      return 0;
+
     }
 
     /**
